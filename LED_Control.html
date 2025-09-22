@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pico W LED Control via ThingSpeak</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .sensor-data {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .sensor-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px solid #dee2e6;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        .sensor-card.temperature {
+            border-color: #fd7e14;
+            background: linear-gradient(135deg, #fff3e0, #ffe0b3);
+        }
+
+        .sensor-card.humidity {
+            border-color: #20c997;
+            background: linear-gradient(135deg, #e8f5e8, #b3e5d1);
+        }
+
+        .sensor-card.light {
+            border-color: #ffc107;
+            background: linear-gradient(135deg, #fff8e1, #ffecb3);
+        }
+
+        .sensor-icon {
+            font-size: 2em;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .sensor-label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .sensor-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .sensor-unit {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+
+        .sensor-card.loading .sensor-value {
+            color: #6c757d;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #6c757d, #495057);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: linear-gradient(45deg, #495057, #343a40);
+            transform: translateY(-1px);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .led-status {
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.3em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .led-status.off {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .led-status.on {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .led-status.unknown {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-width: 120px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-on {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .btn-on:hover {
+            background: linear-gradient(45deg, #218838, #1aa085);
+        }
+
+        .btn-off {
+            background: linear-gradient(45deg, #dc3545, #fd7e14);
+            color: white;
+        }
+
+        .btn-off:hover {
+            background: linear-gradient(45deg, #c82333, #e8630a);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .status-message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #dee2e6;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 600px) {
+            .control-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔆 Pico W IoT Dashboard</h1>
+            <p>Control LED and Monitor Sensors via ThingSpeak IoT</p>
+        </div>
+
+        <!-- Sensor Data Display -->
+        <div class="sensor-data">
+            <div class="sensor-card temperature" id="temperatureCard">
+                <span class="sensor-icon">🌡️</span>
+                <div class="sensor-label">Temperature</div>
+                <div class="sensor-value" id="temperatureValue">--</div>
+                <div class="sensor-unit">°C</div>
+            </div>
+            <div class="sensor-card humidity" id="humidityCard">
+                <span class="sensor-icon">💧</span>
+                <div class="sensor-label">Humidity</div>
+                <div class="sensor-value" id="humidityValue">--</div>
+                <div class="sensor-unit">%</div>
+            </div>
+            <div class="sensor-card light" id="lightCard">
+                <span class="sensor-icon">☀️</span>
+                <div class="sensor-label">Light</div>
+                <div class="sensor-value" id="lightValue">--</div>
+                <div class="sensor-unit">lux</div>
+            </div>
+        </div>
+
+        <button class="refresh-btn" id="refreshBtn" onclick="readSensorData()">
+            🔄 Refresh Sensor Data
+        </button>
+
+        <div class="led-status unknown" id="ledStatus">
+            📡 LED Status: Unknown
+        </div>
+
+        <div class="control-buttons">
+            <button class="btn btn-on" id="btnOn" onclick="controlLED(1)">
+                💡 Turn ON
+            </button>
+            <button class="btn btn-off" id="btnOff" onclick="controlLED(0)">
+                🌙 Turn OFF
+            </button>
+        </div>
+
+        <div class="status-message status-info" id="statusMessage">
+            � Ready to control LED! Click ON or OFF button below.
+        </div>
+
+        <div class="footer">
+            <p><strong>🏫 FSKM UMT - CSM3313 IoT</strong></p>
+            <p>MicroPython with Pico W lesson by Cikgu Fadzli</p>
+            <p>📊 Fields: 1=Temp, 2=Humidity, 3=Light, 4=LED Control</p>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 🔧 HARDCODED THINGSPEAK CONFIGURATION
+        // ============================================
+        // Replace these values with your actual ThingSpeak credentials
+        // const THINGSPEAK_WRITE_API_KEY = "YOUR_WRITE_API_KEY";  // Your Write API Key
+        // const THINGSPEAK_CHANNEL_ID = "YOUR_CHANNEL_ID";        // Your Channel ID
+        const THINGSPEAK_WRITE_API_KEY = "TEZ7T5C49PQQTZDG";  // Your Write API Key
+        const THINGSPEAK_CHANNEL_ID = "3083811";        // Your Channel ID
+        const THINGSPEAK_READ_API_KEY = "BTLJCQ1MSWG6N2BO";  // Your Read API Key (optional for public channels)
+        
+        // Global variables
+        let isLoading = false;
+        let isReadingData = false;
+        
+        // Initialize page
+        window.onload = function() {
+            showMessage('🚀 Ready to control LED and monitor sensors!', 'info');
+            readSensorData(); // Load sensor data on page load
+        };
+
+        // Read sensor data from ThingSpeak
+        async function readSensorData() {
+            if (isReadingData) return;
+            
+            isReadingData = true;
+            updateRefreshButton(true);
+            
+            // Set loading state for all sensor cards
+            setSensorLoading('temperature', true);
+            setSensorLoading('humidity', true);
+            setSensorLoading('light', true);
+            
+            try {
+                // Read the last entry from the channel
+                let apiUrl;
+                if (THINGSPEAK_READ_API_KEY && THINGSPEAK_READ_API_KEY !== "YOUR_READ_API_KEY") {
+                    apiUrl = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds/last.json?api_key=${THINGSPEAK_READ_API_KEY}`;
+                } else {
+                    // Public channel read
+                    apiUrl = `https://api.thingspeak.com/channels/${THINGSPEAK_CHANNEL_ID}/feeds/last.json`;
+                }
+                
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    mode: 'cors',
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Sensor data received:', data);
+                    
+                    // Update sensor displays
+                    updateSensorValue('temperature', data.field1, '°C');
+                    updateSensorValue('humidity', data.field2, '%');
+                    updateSensorValue('light', data.field3, 'lux');
+                    
+                    // Show last update time
+                    const updateTime = new Date(data.created_at).toLocaleTimeString();
+                    showMessage(`✅ Sensor data updated at ${updateTime}`, 'success');
+                    
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+            } catch (error) {
+                console.error('Sensor data read error:', error);
+                showMessage(`❌ Failed to read sensor data: ${error.message}`, 'error');
+                
+                // Show error state
+                updateSensorValue('temperature', 'Error', '');
+                updateSensorValue('humidity', 'Error', '');
+                updateSensorValue('light', 'Error', '');
+            } finally {
+                isReadingData = false;
+                updateRefreshButton(false);
+                setSensorLoading('temperature', false);
+                setSensorLoading('humidity', false);
+                setSensorLoading('light', false);
+            }
+        }
+
+        // Update sensor value display
+        function updateSensorValue(sensorType, value, unit) {
+            const valueElement = document.getElementById(`${sensorType}Value`);
+            if (value !== null && value !== undefined && value !== '') {
+                // Format number to 1 decimal place if it's a valid number
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue)) {
+                    valueElement.textContent = numValue.toFixed(1);
+                } else {
+                    valueElement.textContent = value;
+                }
+            } else {
+                valueElement.textContent = '--';
+            }
+        }
+
+        // Set sensor loading state
+        function setSensorLoading(sensorType, isLoading) {
+            const card = document.getElementById(`${sensorType}Card`);
+            const valueElement = document.getElementById(`${sensorType}Value`);
+            
+            if (isLoading) {
+                card.classList.add('loading');
+                valueElement.textContent = '...';
+            } else {
+                card.classList.remove('loading');
+            }
+        }
+
+        // Update refresh button state
+        function updateRefreshButton(isLoading) {
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (isLoading) {
+                refreshBtn.disabled = true;
+                refreshBtn.innerHTML = '🔄 Reading...';
+            } else {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = '🔄 Refresh Sensor Data';
+            }
+        }
+
+        // Main LED control function
+        async function controlLED(state) {
+            if (isLoading) return;
+            
+            // Validation - check if credentials are configured
+            if (THINGSPEAK_WRITE_API_KEY === "YOUR_WRITE_API_KEY") {
+                showMessage('❌ Please configure THINGSPEAK_WRITE_API_KEY in the code', 'error');
+                return;
+            }
+            
+            if (THINGSPEAK_CHANNEL_ID === "YOUR_CHANNEL_ID") {
+                showMessage('❌ Please configure THINGSPEAK_CHANNEL_ID in the code', 'error');
+                return;
+            }
+            
+            // Start loading state
+            setLoadingState(true);
+            updateLEDStatus('unknown');
+            
+            try {
+                // Build ThingSpeak API URL using hardcoded credentials
+                const thingSpeakURL = `https://api.thingspeak.com/update?api_key=${THINGSPEAK_WRITE_API_KEY}&field4=${state}`;
+                
+                showMessage(`🚀 Sending command: LED ${state === 1 ? 'ON' : 'OFF'}...`, 'info');
+                
+                // Make API request
+                const response = await fetch(thingSpeakURL, {
+                    method: 'GET',
+                    mode: 'cors',
+                });
+                
+                if (response.ok) {
+                    const result = await response.text();
+                    
+                    if (result && result !== '0') {
+                        // Success
+                        updateLEDStatus(state === 1 ? 'on' : 'off');
+                        showMessage(`✅ LED turned ${state === 1 ? 'ON' : 'OFF'} successfully! Entry: ${result}`, 'success');
+                    } else {
+                        // ThingSpeak returned 0 (error)
+                        showMessage('❌ ThingSpeak returned error (0). Check your API key and channel ID.', 'error');
+                    }
+                } else {
+                    showMessage(`❌ HTTP Error: ${response.status} - ${response.statusText}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('LED Control Error:', error);
+                showMessage(`❌ Network Error: ${error.message}`, 'error');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // Update LED status display
+        function updateLEDStatus(status) {
+            const statusElement = document.getElementById('ledStatus');
+            statusElement.className = 'led-status ' + status;
+            
+            switch(status) {
+                case 'on':
+                    statusElement.innerHTML = '💡 LED Status: ON';
+                    break;
+                case 'off':
+                    statusElement.innerHTML = '🌙 LED Status: OFF';
+                    break;
+                default:
+                    statusElement.innerHTML = '📡 LED Status: Unknown';
+            }
+        }
+
+        // Show status messages
+        function showMessage(message, type) {
+            const messageElement = document.getElementById('statusMessage');
+            messageElement.className = 'status-message status-' + type;
+            messageElement.innerHTML = message;
+        }
+
+        // Set loading state
+        function setLoadingState(loading) {
+            isLoading = loading;
+            const btnOn = document.getElementById('btnOn');
+            const btnOff = document.getElementById('btnOff');
+            
+            if (loading) {
+                btnOn.disabled = true;
+                btnOff.disabled = true;
+                btnOn.innerHTML = '<span class="loading"></span>Sending...';
+                btnOff.innerHTML = '<span class="loading"></span>Sending...';
+            } else {
+                btnOn.disabled = false;
+                btnOff.disabled = false;
+                btnOn.innerHTML = '💡 Turn ON';
+                btnOff.innerHTML = '🌙 Turn OFF';
+            }
+        }
+
+        // Auto-refresh sensor data every 30 seconds
+        setInterval(readSensorData, 30000);
+
+    </script>
+</body>
+</html>
