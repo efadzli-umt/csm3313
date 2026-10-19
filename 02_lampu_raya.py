@@ -11,10 +11,10 @@ from machine import Pin
 L = []
 
 # To Declare the LEDs as PORT
-LEDS = (0, 1, 2, 3, 4, 5, 6, 7)
+PinLED = (0, 1, 2, 3, 4, 5, 6, 7)
 
 for i in range(8):
-    L.append(Pin(LEDS[i], Pin.OUT))
+    L.append(Pin(PinLED[i], Pin.OUT))
     L[i].off()  # Initialize LEDs as off
     
 while True:
