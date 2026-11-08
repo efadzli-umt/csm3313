@@ -4,6 +4,37 @@
 # MicroPython with Pico W lesson by Cikgu Fadzli
 # Telegram Bot Integration
 #---------------------
+
+# -------------------------------------------------------
+# HOW TO CREATE AND CONFIGURE A TELEGRAM BOT
+# -------------------------------------------------------
+# Step 1: Open Telegram and search for @BotFather.
+# Step 2: Start a chat with @BotFather and send /newbot.
+# Step 3: Enter a name for your bot (e.g., Siti IoT Bot).
+# Step 4: Enter a unique username ending with "bot"
+#         (e.g., siti123_iot_bot).
+# Step 5: BotFather will provide a Bot API Token.
+#         Copy this token.
+# Step 6: Search for your newly created bot in Telegram.
+#         Press START and send a message (e.g., Hello).
+# Step 7: Open the following URL in your web browser:
+#         https://api.telegram.org/bot<TOKEN>/getUpdates
+#         Replace <TOKEN> with your actual Bot API Token.
+# Step 8: Find "chat": {"id": ...} in the JSON response.
+#         Copy the chat ID (that is your Telegram Chat ID).
+# Step 9: Update TELEGRAM_BOT_TOKEN and
+#         TELEGRAM_CHAT_ID in the code below.
+# Step 10: Update your WiFi SSID and password.
+# Step 11: Run the program using Thonny IDE.
+#          You should receive messages from your bot!
+#
+# IMPORTANT:
+# - Keep your Bot API Token private.
+# - Do not share code containing your actual token.
+# - If getUpdates returns an empty result, send another
+#   message to your bot and refresh the browser.
+# -------------------------------------------------------
+
 import time
 import network
 import urequests
